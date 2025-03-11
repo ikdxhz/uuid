@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced UUID Generator</title>
+    <style>
+        /* 更新基础颜色方案 */
+        :root {
+            --primary: #4CAF50;
+            --secondary: #2196F3;
+            --accent: #FF9800;
+            --background: #f8f9fa;
+            --text: #2c3e50;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-family: 'Inter', system-ui, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 2rem;
+            margin: 2rem auto;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .config-panel {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.1),
+                       -5px -5px 15px rgba(255,255,255,0.8);
+            transform: perspective(1000px) rotateX(2deg);
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        select, input {
+            background: rgba(255,255,255,0.8);
+            border: 2px solid rgba(224,224,224,0.3);
+            backdrop-filter: blur(5px);
+            border-radius: 8px;
+            padding: 0.8rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 0;
+        }
+        select:focus, input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
+        }
+        button {
+            background: linear-gradient(135deg, var(--primary), #45a049);
+            border-radius: 15px;
+            padding: 1.2rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        button:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(76,175,80,0.3);
+        }
+        button:hover::after {
+            opacity: 1;
+        }
+        button:disabled {
+            background: #a5d6a7;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        .copy-btn {
+            background: linear-gradient(135deg, #008CBA, #007399);
+        }
+        #uuid-output {
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 200px;
+            max-height: 60vh;
+            overflow-y: auto;
+            text-align: left;
+            font-family: 'Fira Code', monospace;
+            white-space: pre-wrap;
+            position: relative;
+        }
+        .loader {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, 
+                var(--primary) 0%, 
+                #45a049 50%, 
+                var(--primary) 100%);
+            background-size: 200% 100%;
+            animation: progress-glow 2s linear infinite;
+        }
+        @keyframes progress-glow {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+        .uuid-entry {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-radius: 8px;
+            margin: 5px 0;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .uuid-entry:hover {
+            transform: translateX(10px);
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
+            background: rgba(76,175,80,0.05);
+        }
+        .uuid-index {
+            color: #4CAF50;
+            font-weight: bold;
+            min-width: 3rem;
+        }
+        .form-group {
+            position: relative;
+            margin: 0.5rem 0;
+        }
+        label {
+            display: block;
+            margin: 0.5rem 0;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9em;
+            transition: color 0.3s ease;
+        }
+        label::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .input-group {
+            margin: 1rem 0;
+        }
+        .ns-input {
+            grid-column: 1 / -1;
+        }
+        .help-section {
+            margin-top: 2rem;
+            border-top: 1px solid #eee;
+            padding-top: 1.5rem;
+        }
+        details {
+            background: rgba(255,255,255,0.9);
+            border-radius: 12px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #2c3e50;
+            padding: 0.8rem;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        summary::-webkit-details-marker {
+            display: none;
+        }
+        summary::after {
+            content: '▶';
+            transition: transform 0.3s;
+            margin-left: auto;
+        }
+        details[open] summary::after {
+            transform: rotate(90deg);
+        }
+        .help-content {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .help-columns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .version-tag {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .v1 { background: #e3f2fd; color: #1976d2; }
+        .v3 { background: #f0f4c3; color: #afb42b; }
+        .v4 { background: #c8e6c9; color: #388e3c; }
+        .v5 { background: #ffcdd2; color: #d32f2f; }
+        .tip-card {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            transform: perspective(1000px) rotateY(2deg);
+            transition: transform 0.3s;
+        }
+        .tip-card:hover {
+            transform: perspective(1000px) rotateY(0deg);
+        }
+        .security { background: #ffebee; border-left: 4px solid #ef5350; }
+        .performance { background: #fbe9e7; border-left: 4px solid #ff7043; }
+        .format-examples table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        .format-examples td, .format-examples th {
+            padding: 1rem;
+            border: 1px solid #eee;
+            text-align: left;
+            font-family: 'Fira Code', monospace;
+        }
+        .format-examples th {
+            width: 120px;
+            background: #f5f5f5;
+        }
+        .icon {
+            margin-right: 0.5rem;
+        }
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(45deg, #e8f5e9, #f1f8e9);
+        }
+        .particle {
+            position: absolute;
+            background: rgba(76,175,80,0.1);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+        @keyframes float {
+            0% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-100vh) translateX(50vw); }
+            50% { transform: translateY(-50vh) translateX(-30vw); }
+            100% { transform: translateY(0) translateX(0); }
+        }
+        details[open] .help-content {
+            animation: panel-open 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes panel-open {
+            0% { opacity: 0; transform: translateY(-10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        /* 添加按钮组样式 */
+        .button-group {
+            margin: 15px 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .button-group.top {
+            margin-bottom: 10px;
+        }
+
+        .button-group.bottom {
+            margin-top: 20px;
+        }
+
+        /* 新增导出按钮样式 */
+        .export-btn {
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(156,39,176,0.3);
+        }
+
+        /* 新增停止按钮样式 */
+        .stop-btn {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stop-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244,67,54,0.3);
+        }
+
+        /* 新增生成动画 */
+        .uuid-entry {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .generating-placeholder {
+            display: inline-block;
+            width: 300px;
+            height: 1.2em;
+            background: linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%);
+            background-size: 200% 100%;
+            animation: loadingShimmer 1.5s infinite linear;
+            border-radius: 4px;
+        }
+
+        @keyframes loadingShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background: var(--primary);
+            animation: blink 1s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* 添加版本提示样式 */
+        .input-group label::after {
+            content: attr(data-version);
+            color: var(--accent);
+            font-size: 0.8em;
+            margin-left: 0.5em;
+            opacity: 0.7;
+        }
+
+        /* v1版本特别标识 */
+        #version option[value="v1"] {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        /* 添加作者信息样式 */
+        .author-info {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+        }
+        .author-info a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .author-info a:hover {
+            color: var(--secondary);
+        }
+
+        /* 语言选择器样式 */
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .language-selector select {
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            color: var(--text);
+            cursor: pointer;
+            padding-right: 20px;
+            appearance: none;
+            outline: none;
+        }
+
+        .language-selector::after {
+            content: '🌐';
+            font-size: 16px;
+            margin-left: 5px;
+        }
+
+        .language-selector select:hover {
+            color: var(--primary);
+        }
+    </style>
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+           style-src 'self' 'unsafe-inline';
+           script-src 'self' 'unsafe-inline' 'unsafe-eval';
+           connect-src 'none';
+           object-src 'none';
+           base-uri 'none';">
+</head>
+<body>
+    <div class="dynamic-bg">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+    <div class="container">
+        <div class="language-selector">
+            <select id="languageSelect" onchange="changeLanguage()">
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+            </select>
+        </div>
+        <h1>🔑 Advanced UUID Generator</h1>
+        <div class="progress-container">
+            <div class="progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="config-panel">
+            <div class="form-group">
+                <label for="version">🔢 UUID Version:</label>
+                <select id="version" onchange="toggleNamespaceInput(); validateNameInput();">
+                    <option value="v1">Version 1 (Time + Node)</option>
+                    <option value="v3">Version 3 (MD5 Namespace)</option>
+                    <option value="v4" selected>Version 4 (Random)</option>
+                    <option value="v5">Version 5 (SHA-1 Namespace)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="format">📝 Output Format:</label>
+                <select id="format">
+                    <option value="standard">Standard Format</option>
+                    <option value="no-dash">No Dashes</option>
+                    <option value="urn">URN Format</option>
+                    <option value="braced">Braced Format</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="count">🎯 Generation Count:</label>
+                <input type="number" id="count" min="1" value="1" placeholder="Enter count">
+            </div>
+
+            <div id="namespaceInput" class="ns-input form-group">
+                <div class="input-group">
+                    <label for="namespace">📦 Namespace:</label>
+                    <input type="text" id="namespace" 
+                           placeholder="URL or existing UUID"
+                           pattern="^(?:https?://\S+|uuid:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$"
+                           oninvalid="this.setCustomValidity('Please enter a valid URL or UUID format')"
+                           oninput="this.setCustomValidity('')">
+                </div>
+                <div class="input-group">
+                    <label for="name">🏷️ Name:</label>
+                    <input type="text" id="name" placeholder="Enter unique identifier">
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group top">
+            <button onclick="startBatchGeneration()" id="generateBtn">🎲 Generate UUID</button>
+            <button onclick="stopGeneration()" id="stopBtn" class="stop-btn" style="display: none;">⏹ Stop Generation</button>
+        </div>
+
+        <div id="uuid-output">
+            <div class="loader"></div>
+        </div>
+
+        <div class="button-group bottom">
+            <button onclick="copyUUID()" class="copy-btn">Copy to Clipboard</button>
+            <button onclick="exportToTXT()" class="export-btn">Export as TXT</button>
+        </div>
+
+        <div class="help-section">
+            <details>
+                <summary>📚 UUID Knowledge Base (Click to Expand)</summary>
+                <div class="help-content">
+                    <div class="help-columns">
+                        <div class="help-column">
+                            <h3><span class="icon">🔍</span> Version Selection Guide</h3>
+                            <dl>
+                                <dt><span class="version-tag v1">v1</span> Timestamp Version</dt>
+                                <dd>- Based on timestamp and hardware address<br>- Suitable for time-ordered scenarios<br>- Note: May contain privacy information</dd>
+
+                                <dt><span class="version-tag v3">v3</span> MD5 Hash Version</dt>
+                                <dd>- Deterministic generation based on namespace<br>- Suitable for fixed input requiring same UUID<br>- Hash algorithm: MD5 (older)</dd>
+
+                                <dt><span class="version-tag v4">v4</span> Random Version</dt>
+                                <dd>- Completely random generation<br>- Most commonly used and secure<br>- Recommended for most scenarios</dd>
+
+                                <dt><span class="version-tag v5">v5</span> SHA-1 Hash Version</dt>
+                                <dd>- Similar to v3 but more secure<br>- Hash algorithm: SHA-1<br>- Recommended for deterministic scenarios</dd>
+                            </dl>
+                        </div>
+
+                        <div class="help-column">
+                            <h3><span class="icon">📌</span> Usage Guidelines</h3>
+                            <div class="tip-card security">
+                                <h4>Security Notes</h4>
+                                <ul>
+                                    <li>Prefer v4 or v5 for sensitive data</li>
+                                    <li>Avoid using v1 for security tokens</li>
+                                    <li>Ensure namespace uniqueness for v3/v5</li>
+                                </ul>
+                            </div>
+
+                            <div class="tip-card performance">
+                                <h4>Performance Tips</h4>
+                                <ul>
+                                    <li>Use v4 for batch generation</li>
+                                    <li>v3/v5 require more computational resources</li>
+                                    <li>Generate in batches for over 1000 UUIDs</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="format-examples">
+                        <h3><span class="icon">🎨</span> Format Examples</h3>
+                        <table>
+                            <tr><th>Standard</th><td>123e4567-e89b-12d3-a456-426614174000</td></tr>
+                            <tr><th>No Dashes</th><td>123e4567e89b12d3a456426614174000</td></tr>
+                            <tr><th>URN</th><td>urn:uuid:123e4567-e89b-12d3-a456-426614174000</td></tr>
+                            <tr><th>Braced</th><td>{123e4567-e89b-12d3-a456-426614174000}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </details>
+        </div>
+        <div class="author-info">
+            <p>Author: ikdxhz | 📧 <a href="mailto:email-ikdxhz@ikdxhz.us.kg">email-ikdxhz@ikdxhz.us.kg</a></p>
+        </div>
+    </div>
+
+    <script>
+        let isGenerating = false;
+        let totalCount = 0;
+        let generatedCount = 0;
+        let shouldStop = false;
+
+        const uuidGenerators = {
+            v1: () => {
+                const now = Date.now() - 12219292800000; // 1582-10-15起点
+                const timeLow = (now & 0xFFFFFFFF).toString(16).padStart(8, '0');
+                const timeMid = ((now >>> 32) & 0xFFFF).toString(16).padStart(4, '0');
+                const timeHiVersion = (((now >>> 48) & 0x0FFF) | 0x1000).toString(16).padStart(4, '0');
+                
+                const clockSeq = crypto.getRandomValues(new Uint16Array(1))[0];
+                const clockSeqHex = (clockSeq & 0x3FFF).toString(16).padStart(4, '0');
+                
+                // 使用伪随机节点标识（浏览器环境无法获取真实MAC）
+                const node = crypto.getRandomValues(new Uint8Array(6));
+                const nodeHex = Array.from(node).map(b => b.toString(16).padStart(2, '0')).join('');
+                
+                return `${timeLow}-${timeMid}-${timeHiVersion}-${clockSeqHex.substr(0,2)}${(clockSeqHex.substr(2) | 0x8000).toString(16)}-${nodeHex}`;
+            },
+
+            v3: async (namespace, name) => {
+                const nsBytes = stringToBytes(namespace);
+                const nameBytes = new TextEncoder().encode(name);
+                const data = new Uint8Array([...nsBytes, ...nameBytes]);
+                
+                const hash = await crypto.subtle.digest('MD5', data);
+                return formatUUID(new Uint8Array(hash), 0x30);
+            },
+
+            v4: () => {
+                const buffer = new Uint8Array(16);
+                crypto.getRandomValues(buffer);
+                buffer[6] = (buffer[6] & 0x0f) | 0x40; // 版本4
+                buffer[8] = (buffer[8] & 0x3f) | 0x80; // 变体1
+                return formatUUID(buffer);
+            },
+
+            v5: async (namespace, name) => {
+                const nsBytes = stringToBytes(namespace);
+                const nameBytes = new TextEncoder().encode(name);
+                const data = new Uint8Array([...nsBytes, ...nameBytes]);
+                
+                const hash = await crypto.subtle.digest('SHA-1', data);
+                return formatUUID(new Uint8Array(hash).slice(0, 16), 0x50);
+            }
+        };
+
+        function formatUUID(buffer, versionByte) {
+            if(versionByte) buffer[6] = (buffer[6] & 0x0f) | versionByte;
+            buffer[8] = (buffer[8] & 0x3f) | 0x80;
+            
+            const hex = Array.from(buffer)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+            
+            const formats = {
+                standard: hex.replace(/(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})/, '$1-$2-$3-$4-$5'),
+                'no-dash': hex,
+                urn: `urn:uuid:${hex.replace(/(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})/, '$1-$2-$3-$4-$5')}`,
+                braced: `{${hex.replace(/(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})/, '$1-$2-$3-$4-$5')}}`
+            };
+            
+            return formats[document.getElementById('format').value];
+        }
+
+        // 添加标准命名空间常量
+        const NAMESPACE = {
+            DNS: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+            URL: '6ba7b811-9dad-11d1-80b4-00c04fd430c8',
+            OID: '6ba7b812-9dad-11d1-80b4-00c04fd430c8',
+            X500: '6ba7b814-9dad-11d1-80b4-00c04fd430c8'
+        };
+
+        // 修改stringToBytes函数
+        function stringToBytes(str) {
+            try {
+                // 验证标准命名空间
+                if(Object.values(NAMESPACE).includes(str.toLowerCase())) {
+                    return parseUUID(str);
+                }
+                
+                // 严格验证UUID格式
+                if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str)) {
+                    const bytes = parseUUID(str);
+                    if((bytes[6] & 0xf0) !== 0x10 && (bytes[6] & 0xf0) !== 0x30 && 
+                       (bytes[6] & 0xf0) !== 0x50) {
+                        throw new Error('无效的命名空间版本');
+                    }
+                    return bytes;
+                }
+                
+                // 处理非UUID字符串
+                if(str.startsWith('http:') || str.startsWith('https:')) {
+                    return stringToBytes(NAMESPACE.URL);
+                }
+                if(str.includes('.')) {
+                    return stringToBytes(NAMESPACE.DNS);
+                }
+                
+                return new TextEncoder().encode(str);
+            } catch (err) {
+                console.error('命名空间解析失败:', err);
+                throw new Error(`无效的命名空间格式: ${str}`);
+            }
+        }
+
+        // 新增UUID解析函数
+        function parseUUID(uuid) {
+            const hex = uuid.replace(/-/g, '');
+            if(hex.length !== 32) throw new Error('Invalid UUID format');
+            return new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b, 16)));
+        }
+
+        function toggleNamespaceInput() {
+            const version = document.getElementById('version').value;
+            const nsSection = document.getElementById('namespaceInput');
+            const nameGroup = document.getElementById('name').closest('.input-group');
+            
+            // 显示逻辑优化
+            const showNamespace = ['v3', 'v5'].includes(version);
+            nsSection.style.display = showNamespace ? 'block' : 'none';
+            
+            // 动态切换必填状态
+            document.getElementById('namespace').required = showNamespace;
+            document.getElementById('name').required = showNamespace;
+
+            // 版本特定提示
+            const namespaceLabels = {
+                'v3': 'MD5命名空间',
+                'v5': 'SHA-1命名空间'
+            };
+            
+            const nameLabels = {
+                'v3': 'MD5名称',
+                'v5': 'SHA-1名称'
+            };
+
+            // 更新标签文本
+            nsSection.querySelector('label[for="namespace"]').innerHTML = 
+                showNamespace ? `📦 ${namespaceLabels[version]}：` : '📦 命名空间：';
+                
+            nsSection.querySelector('label[for="name"]').innerHTML = 
+                showNamespace ? `🏷️ ${nameLabels[version]}：` : '🏷️ 名称：';
+
+            // v1版本特别处理
+            if(version === 'v1') {
+                document.querySelector('.performance ul').innerHTML = `
+                    <li>基于时间戳的连续生成</li>
+                    <li>包含伪随机节点标识</li>
+                    <li>时钟序列加密增强</li>
+                `;
+            }
+        }
+
+        function validateNameInput() {
+            const version = document.getElementById('version').value;
+            const nameInput = document.getElementById('name');
+            
+            if (version === 'v3' || version === 'v5') {
+                nameInput.pattern = "^\\S{1,255}$";
+                nameInput.setAttribute('title', '请输入1-255个非空字符');
+            } else {
+                nameInput.removeAttribute('pattern');
+                nameInput.removeAttribute('title');
+            }
+        }
+
+        async function startBatchGeneration() {
+            if (isGenerating) return;
+            
+            // 添加版本验证
+            const version = document.getElementById('version').value;
+            if(['v3','v5'].includes(version)) {
+                const namespace = document.getElementById('namespace').value;
+                const name = document.getElementById('name').value;
+                
+                if(!namespace || !name) {
+                    showAlert('请填写命名空间和名称', 'warning');
+                    return;
+                }
+                
+                try {
+                    // 提前验证命名空间有效性
+                    stringToBytes(namespace);
+                } catch (err) {
+                    showAlert(`无效的命名空间: ${err.message}`, 'error');
+                    return;
+                }
+            }
+
+            shouldStop = false;
+            const generateBtn = document.getElementById('generateBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            generateBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-block';
+
+            const countInput = document.getElementById('count');
+            totalCount = parseInt(countInput.value) || 1;
+            if (totalCount < 1) {
+                showAlert('生成数量必须大于0', 'warning');
+                return;
+            }
+
+            isGenerating = true;
+            document.querySelector('.loader').style.display = 'block';
+            document.querySelector('button').innerHTML = '⏳ 生成中...';
+            document.querySelector('.progress-bar').style.width = '0%';
+            countInput.disabled = true;
+
+            try {
+                while (generatedCount < totalCount && !shouldStop) {
+                    const batchSize = Math.min(15, totalCount - generatedCount);
+                    await generateBatch(batchSize);
+                    generatedCount += batchSize;
+                    
+                    const progress = (generatedCount / totalCount * 100).toFixed(1);
+                    document.querySelector('.progress-bar').style.width = `${progress}%`;
+
+                    if (generatedCount < totalCount) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+
+                if (shouldStop) {
+                    showAlert(`⏹ 已停止生成，成功生成 ${generatedCount} 个UUID`, 'warning');
+                } else {
+                    showAlert(`✅ 成功生成 ${totalCount} 个UUID`, 'success');
+                }
+            } catch (err) {
+                console.error('批量生成失败:', err);
+                showAlert('生成失败，请检查参数', 'error');
+            } finally {
+                isGenerating = false;
+                generatedCount = 0;
+                document.querySelector('.loader').style.display = 'none';
+                document.querySelector('button').innerHTML = '🎲 Generate UUID';
+                countInput.disabled = false;
+                generateBtn.style.display = 'inline-block';
+                stopBtn.style.display = 'none';
+            }
+        }
+
+        async function generateBatch(batchSize) {
+            const version = document.getElementById('version').value;
+            const output = document.getElementById('uuid-output');
+            const promises = [];
+            
+            // 预创建所有占位符
+            const placeholders = Array.from({length: batchSize}, (_, i) => {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'uuid-entry';
+                placeholder.innerHTML = `
+                    <span class="uuid-index">#${generatedCount + i + 1}</span>
+                    <span class="generating-placeholder"></span>
+                    <span class="typing-cursor"></span>
+                `;
+                return placeholder;
+            });
+            
+            output.append(...placeholders);
+            output.scrollTop = output.scrollHeight;
+
+            // 并行生成UUID
+            for(let i = 0; i < batchSize; i++) {
+                promises.push((async () => {
+                    await new Promise(resolve => setTimeout(resolve, 50 * i));
+                    
+                    try {
+                        let uuid;
+                        if (version === 'v3' || version === 'v5') {
+                            const namespace = document.getElementById('namespace').value;
+                            const name = document.getElementById('name').value;
+                            if (!namespace || !name) throw new Error('缺少命名空间或名称');
+                            uuid = await uuidGenerators[version](namespace, name);
+                        } else {
+                            uuid = uuidGenerators[version]();
+                        }
+
+                        placeholders[i].outerHTML = `
+                            <div class="uuid-entry">
+                                <span class="uuid-index">#${generatedCount + i + 1}</span>
+                                <span class="uuid-value">${escapeHTML(uuid)}</span>
+                            </div>
+                        `;
+                    } catch(err) {
+                        placeholders[i].outerHTML = `
+                            <div class="uuid-entry error">
+                                <span class="uuid-index">#${generatedCount + i + 1}</span>
+                                <span class="uuid-value">生成失败</span>
+                            </div>
+                        `;
+                    }
+                })());
+            }
+
+            await Promise.all(promises);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function copyUUID() {
+            const uuidElements = document.querySelectorAll('.uuid-entry .uuid-value');
+            if (uuidElements.length > 0) {
+                const uuids = Array.from(uuidElements)
+                    .map(el => el.textContent.trim())
+                    .join('\n');
+                    
+                navigator.clipboard.writeText(uuids)
+                    .then(() => alert('已复制UUID到剪贴板！'))
+                    .catch(err => console.error('复制失败:', err));
+            }
+        }
+
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        // 修改导出函数
+        function exportToTXT() {
+            const entries = document.querySelectorAll('.uuid-entry .uuid-value');
+            if (entries.length === 0) {
+                alert('没有可导出的内容');
+                return;
+            }
+
+            const content = Array.from(entries)
+                .map(el => el.textContent.trim())
+                .filter(uuid => isValidUUID(uuid))
+                .join('\n');
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `uuids_${new Date().toISOString().slice(0,19).replace(/[:T-]/g,'')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 新增UUID验证函数
+        function isValidUUID(uuid) {
+            const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            return regex.test(uuid) || 
+                   /^[0-9a-f]{32}$/i.test(uuid) || // 无连字符格式
+                   /^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid) || // URN格式
+                   /^{[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}}$/i.test(uuid); // 花括号格式
+        }
+
+        // 新增停止函数
+        function stopGeneration() {
+            shouldStop = true;
+            document.querySelector('.progress-bar').style.animation = 'none';
+            document.getElementById('stopBtn').style.backgroundColor = '#ffcdd2';
+        }
+
+        // 新增HTML转义函数
+        function escapeHTML(str) {
+            return str.replace(/[&<>"']/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[tag]));
+        }
+
+        // 在脚本最后添加初始化代码
+        // 初始化显示状态
+        toggleNamespaceInput();
+        validateNameInput();
+
+        // 添加语言切换功能
+        function changeLanguage() {
+            const lang = document.getElementById('languageSelect').value;
+            if (lang === 'zh') {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // 设置初始语言选择
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang');
+            if (lang) {
+                document.getElementById('languageSelect').value = lang;
+            }
+        });
+
+        function validateInputs() {
+            const version = document.getElementById('version').value;
+            const namespaceInput = document.getElementById('namespace');
+            
+            if(['v3','v5'].includes(version)) {
+                namespaceInput.pattern = "^uuid:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$|^https?://";
+                namespaceInput.setCustomValidity('请输入有效的UUID或URL格式');
+            }
+        }
+    </script>
+</body>
+</html> 
