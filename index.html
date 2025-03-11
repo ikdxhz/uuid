@@ -429,6 +429,42 @@
         .author-info a:hover {
             color: var(--secondary);
         }
+
+        /* 语言选择器样式 */
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .language-selector select {
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            color: var(--text);
+            cursor: pointer;
+            padding-right: 20px;
+            appearance: none;
+            outline: none;
+        }
+
+        .language-selector::after {
+            content: '🌐';
+            font-size: 16px;
+            margin-left: 5px;
+        }
+
+        .language-selector select:hover {
+            color: var(--primary);
+        }
     </style>
     <meta http-equiv="Content-Security-Policy" 
           content="default-src 'self'; 
@@ -445,6 +481,12 @@
         <div class="particle"></div>
     </div>
     <div class="container">
+        <div class="language-selector">
+            <select id="languageSelect" onchange="changeLanguage()">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+            </select>
+        </div>
         <h1>🔑 高级UUID生成器</h1>
         <div class="progress-container">
             <div class="progress-bar" style="width: 0%"></div>
@@ -958,6 +1000,23 @@
         // 初始化显示状态
         toggleNamespaceInput();
         validateNameInput();
+
+        // 添加语言切换功能
+        function changeLanguage() {
+            const lang = document.getElementById('languageSelect').value;
+            if (lang === 'en') {
+                window.location.href = 'index-en.html';
+            }
+        }
+
+        // 设置初始语言选择
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang');
+            if (lang) {
+                document.getElementById('languageSelect').value = lang;
+            }
+        });
 
         function validateInputs() {
             const version = document.getElementById('version').value;
